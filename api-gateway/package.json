@@ -1,0 +1,19 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@fastify/http-proxy": "^11.1.2",
+    "@fastify/reply-from": "^12.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "fastify": "^5.3.3",
+    "fastify-http-proxy": "^6.3.0",
+    "http-proxy-middleware": "^3.0.5"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Hệ thống Chat Bệnh viện</title>
+    <link rel="stylesheet" href="/admin/admin-dashboard.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-content">
+          <h1><i class="fas fa-user-shield"></i> Admin Dashboard</h1>
+          <div class="user-info">
+            <span id="adminName">Đang tải...</span>
+            <button id="logoutBtn" class="btn-logout">
+              <i class="fas fa-sign-out-alt"></i> Đăng xuất
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <nav class="sidebar-nav">
+            <button class="nav-btn active" data-tab="dashboard">
+              <i class="fas fa-tachometer-alt"></i>
+              Tổng quan
+            </button>
+            <button class="nav-btn" data-tab="doctors">
+              <i class="fas fa-user-md"></i>
+              Quản lý Bác sĩ
+            </button>
+            <button class="nav-btn" data-tab="patients">
+              <i class="fas fa-user-injured"></i>
+              Quản lý Bệnh nhân
+            </button>
+            <button class="nav-btn" data-tab="assignments">
+              <i class="fas fa-link"></i>
+              Gán Bác sĩ
+            </button>
+            <button class="nav-btn" data-tab="statistics">
+              <i class="fas fa-chart-bar"></i>
+              Thống kê
+            </button>
+          </nav>
+        </aside>
+
+        <!-- Content Area -->
+        <section class="content-area">
+          <!-- Dashboard Tab -->
+          <div id="dashboard" class="tab-content active">
+            <div class="dashboard-header">
+              <h2><i class="fas fa-tachometer-alt"></i> Tổng quan hệ thống</h2>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon doctor">
+                  <i class="fas fa-user-md"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 id="totalDoctors">0</h3>
+                  <p>Tổng số Bác sĩ</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon patient">
+                  <i class="fas fa-user-injured"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 id="totalPatients">0</h3>
+                  <p>Tổng số Bệnh nhân</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon assignment">
+                  <i class="fas fa-link"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 id="totalAssignments">0</h3>
+                  <p>Bệnh nhân được gán</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon chat">
+                  <i class="fas fa-comments"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 id="activeChats">0</h3>
+                  <p>Phòng chat hoạt động</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="quick-actions">
+              <h3>Thao tác nhanh</h3>
+              <div class="action-buttons">
+                <button class="btn-primary" onclick="showCreateDoctorModal()">
+                  <i class="fas fa-plus"></i> Thêm Bác sĩ
+                </button>
+                <button class="btn-primary" onclick="showCreatePatientModal()">
+                  <i class="fas fa-plus"></i> Thêm Bệnh nhân
+                </button>
+                <button class="btn-secondary" onclick="showAssignmentModal()">
+                  <i class="fas fa-link"></i> Gán Bác sĩ
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Doctors Tab -->
+          <div id="doctors" class="tab-content">
+            <div class="tab-header">
+              <h2><i class="fas fa-user-md"></i> Quản lý Bác sĩ</h2>
+              <button class="btn-primary" onclick="showCreateDoctorModal()">
+                <i class="fas fa-plus"></i> Thêm Bác sĩ
+              </button>
+            </div>
+
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tên đăng nhập</th>
+                    <th>Email</th>
+                    <th>Chuyên khoa</th>
+                    <th>Khoa</th>
+                    <th>Số bệnh nhân</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="doctorsTableBody">
+                  <tr>
+                    <td colspan="6" class="loading">Đang tải dữ liệu...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Patients Tab -->
+          <div id="patients" class="tab-content">
+            <div class="tab-header">
+              <h2><i class="fas fa-user-injured"></i> Quản lý Bệnh nhân</h2>
+              <button class="btn-primary" onclick="showCreatePatientModal()">
+                <i class="fas fa-plus"></i> Thêm Bệnh nhân
+              </button>
+            </div>
+
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tên đăng nhập</th>
+                    <th>Email</th>
+                    <th>Số điện thoại</th>
+                    <th>Bác sĩ được gán</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="patientsTableBody">
+                  <tr>
+                    <td colspan="5" class="loading">Đang tải dữ liệu...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Assignments Tab -->
+          <div id="assignments" class="tab-content">
+            <div class="tab-header">
+              <h2><i class="fas fa-link"></i> Gán Bác sĩ cho Bệnh nhân</h2>
+              <button class="btn-primary" onclick="showAssignmentModal()">
+                <i class="fas fa-plus"></i> Gán mới
+              </button>
+            </div>
+
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Bệnh nhân</th>
+                    <th>Bác sĩ hiện tại</th>
+                    <th>Email bệnh nhân</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="assignmentsTableBody">
+                  <tr>
+                    <td colspan="4" class="loading">Đang tải dữ liệu...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Statistics Tab -->
+          <div id="statistics" class="tab-content">
+            <div class="tab-header">
+              <h2><i class="fas fa-chart-bar"></i> Thống kê hệ thống</h2>
+            </div>
+
+            <div class="stats-container">
+              <div class="chart-container">
+                <h3>Phân bố người dùng</h3>
+                <div class="chart" id="userDistributionChart">
+                  <!-- Chart will be rendered here -->
+                </div>
+              </div>
+
+              <div class="chart-container">
+                <h3>Hoạt động chat</h3>
+                <div class="chart" id="chatActivityChart">
+                  <!-- Chart will be rendered here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Create Doctor Modal -->
+    <div id="createDoctorModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="doctorModalTitle">
+            <i class="fas fa-user-md"></i> Thêm Bác sĩ mới
+          </h3>
+          <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="createDoctorForm">
+            <div class="form-group">
+              <label for="doctorUsername">Tên đăng nhập:</label>
+              <input type="text" id="doctorUsername" name="username" required />
+            </div>
+            <div class="form-group">
+              <label for="doctorEmail">Email:</label>
+              <input type="email" id="doctorEmail" name="email" required />
+            </div>
+            <div class="form-group">
+              <label for="doctorPassword">Mật khẩu:</label>
+              <input
+                type="password"
+                id="doctorPassword"
+                name="password"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="specialization">Chuyên khoa:</label>
+              <input
+                type="text"
+                id="specialization"
+                name="specialization"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="licenseNumber">Số giấy phép hành nghề:</label>
+              <input
+                type="text"
+                id="licenseNumber"
+                name="licenseNumber"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="addDoctorPhoneNumber">Số điện thoại:</label>
+              <input
+                type="text"
+                id="addDoctorPhoneNumber"
+                name="doctorInfo.phoneNumber"
+              />
+            </div>
+            <div class="form-group">
+              <label for="department">Khoa/Phòng ban:</label>
+              <input type="text" id="department" name="department" required />
+            </div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn-secondary"
+                onclick="hideCreateDoctorModal()"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                class="btn-primary"
+                id="doctorModalSubmitBtn"
+              >
+                Thêm Bác sĩ
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Patient Modal -->
+    <div id="createPatientModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-user-injured"></i> Thêm Bệnh nhân mới</h3>
+          <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="createPatientForm">
+            <div class="form-group">
+              <label for="patientUsername">Tên đăng nhập:</label>
+              <input
+                type="text"
+                id="patientUsername"
+                name="username"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="patientEmail">Email:</label>
+              <input type="email" id="patientEmail" name="email" required />
+            </div>
+            <div class="form-group">
+              <label for="patientPassword">Mật khẩu:</label>
+              <input
+                type="password"
+                id="patientPassword"
+                name="password"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="phoneNumber">Số điện thoại:</label>
+              <input type="tel" id="phoneNumber" name="phoneNumber" />
+            </div>
+            <div class="form-group">
+              <label for="address">Địa chỉ:</label>
+              <textarea id="address" name="address" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="emergencyContact">Liên hệ khẩn cấp:</label>
+              <input
+                type="text"
+                id="emergencyContact"
+                name="emergencyContact"
+              />
+            </div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn-secondary"
+                onclick="hideCreatePatientModal()"
+              >
+                Hủy
+              </button>
+              <button type="submit" class="btn-primary">Thêm Bệnh nhân</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assignment Modal -->
+    <div id="assignmentModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-link"></i> Gán Bác sĩ cho Bệnh nhân</h3>
+          <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="assignmentForm">
+            <div class="form-group">
+              <label for="assignmentPatient">Chọn Bệnh nhân:</label>
+              <select id="assignmentPatient" name="patientId" required>
+                <option value="">-- Chọn Bệnh nhân --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="assignmentDoctor">Chọn Bác sĩ:</label>
+              <select id="assignmentDoctor" name="doctorId" required>
+                <option value="">-- Chọn Bác sĩ --</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn-secondary"
+                onclick="hideAssignmentModal()"
+              >
+                Hủy
+              </button>
+              <button type="submit" class="btn-primary">Gán Bác sĩ</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script src="/admin/admin-dashboard.js"></script>
+  </body>
+</html>

@@ -1,0 +1,67 @@
+version: '3.8'
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+
+  chat-service:
+    build: ./chat-service
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/chat-app
+    ports:
+      - '3002:3002'
+    depends_on:
+      - mongo
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    environment:
+      - PORT=3000
+      - USER_SERVICE_URL=http://user-service:3001
+      - CHAT_SERVICE_URL=http://chat-service:3002
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3003
+    ports:
+      - '3000:3000'
+    depends_on:
+      - user-service
+      - chat-service
+      - notification-service
+
+  user-service:
+    build: ./user-service
+    container_name: chat-app-user-service
+    env_file:
+      - ./user-service/.env
+    ports:
+      - '3001:3001'
+    depends_on:
+      - mongo
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    environment:
+      - PORT=3003
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - '3003:3003'
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - '6379:6379'
+
+volumes:
+  mongo_data:

@@ -1,0 +1,17 @@
+{
+  "name": "chat-app",
+  "private": true,
+  "workspaces": [
+    "api-gateway",
+    "user-service",
+    "chat-service",
+    "notification-service"
+  ],
+  "scripts": {
+    "start": "yarn workspace api-gateway start"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.0.1",
+    "axios": "^1.10.0"
+  }
+}

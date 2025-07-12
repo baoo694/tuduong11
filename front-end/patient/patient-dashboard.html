@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bệnh nhân - Hệ thống Chat Bệnh viện</title>
+    <link rel="stylesheet" href="/patient/patient-dashboard.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-content">
+          <h1><i class="fas fa-user-injured"></i> Bệnh nhân Dashboard</h1>
+          <div class="user-info">
+            <span id="patientName">Đang tải...</span>
+            <button id="logoutBtn" class="btn-logout">
+              <i class="fas fa-sign-out-alt"></i> Đăng xuất
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="sidebar-section">
+            <h3><i class="fas fa-user-md"></i> Bác sĩ của tôi</h3>
+            <div id="assignedDoctor" class="doctor-info">
+              <div class="loading">Đang tải thông tin bác sĩ...</div>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <h3><i class="fas fa-info-circle"></i> Thông tin cá nhân</h3>
+            <div id="patientInfo" class="patient-info">
+              <div class="loading">Đang tải thông tin...</div>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <h3><i class="fas fa-cog"></i> Cài đặt</h3>
+            <button id="updateProfileBtn" class="btn-secondary">
+              <i class="fas fa-edit"></i> Cập nhật thông tin
+            </button>
+          </div>
+        </aside>
+
+        <!-- Chat Area -->
+        <section class="chat-area">
+          <div class="chat-header">
+            <h2 id="chatTitle">
+              <i class="fas fa-comments"></i>
+              <span id="chatTitleText">Chọn bác sĩ để bắt đầu chat</span>
+            </h2>
+            <div class="chat-status" id="chatStatus">
+              <span class="status-indicator offline"></span>
+              <span class="status-text">Không kết nối</span>
+            </div>
+          </div>
+
+          <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+              <i class="fas fa-heartbeat"></i>
+              <h3>Chào mừng đến với hệ thống tư vấn y tế</h3>
+              <p>
+                Bạn có thể chat với bác sĩ được gán để được tư vấn và hỗ trợ y
+                tế.
+              </p>
+            </div>
+          </div>
+
+          <div class="chat-input-area">
+            <div class="input-container">
+              <input
+                type="text"
+                id="messageInput"
+                placeholder="Nhập tin nhắn..."
+                disabled
+              />
+              <button id="sendBtn" class="btn-send" disabled>
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal cập nhật thông tin -->
+    <div id="updateProfileModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-edit"></i> Cập nhật thông tin cá nhân</h3>
+          <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="updateProfileForm">
+            <div class="form-group">
+              <label for="updateUsername">Tên đăng nhập:</label>
+              <input type="text" id="updateUsername" name="username" required />
+            </div>
+            <div class="form-group">
+              <label for="updatePhoneNumber">Số điện thoại:</label>
+              <input
+                type="tel"
+                id="updatePhoneNumber"
+                name="patientInfo.phoneNumber"
+              />
+            </div>
+            <div class="form-group">
+              <label for="updateAddress">Địa chỉ:</label>
+              <textarea
+                id="updateAddress"
+                name="patientInfo.address"
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <label for="updateEmergencyContact">Liên hệ khẩn cấp:</label>
+              <input
+                type="text"
+                id="updateEmergencyContact"
+                name="patientInfo.emergencyContact"
+              />
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" id="cancelUpdate">
+                Hủy
+              </button>
+              <button type="submit" class="btn-primary">Cập nhật</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/patient/patient-dashboard.js"></script>
+  </body>
+</html>
