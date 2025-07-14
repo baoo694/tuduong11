@@ -814,3 +814,37 @@ exports.adminChangePatientPassword = async (req, res) => {
       .json({ message: 'Error updating password', error: err.toString() })
   }
 }
+
+exports.unassignDoctorForPatient = async (req, res) => {
+  try {
+    const adminId = req.user.id
+    const admin = await User.findById(adminId)
+    if (!admin || admin.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can unassign doctor' })
+    }
+    const { patientId } = req.params
+    const patient = await User.findById(patientId)
+    if (!patient || patient.role !== 'patient') {
+      return res.status(404).json({ message: 'Patient not found' })
+    }
+    // Nếu có bác sĩ cũ, xóa bệnh nhân khỏi danh sách của bác sĩ đó
+    if (patient.assignedDoctor) {
+      const oldDoctor = await User.findById(patient.assignedDoctor)
+      if (oldDoctor) {
+        oldDoctor.patients = oldDoctor.patients.filter(
+          (p) => p.toString() !== patientId
+        )
+        await oldDoctor.save()
+      }
+    }
+    patient.assignedDoctor = null
+    await patient.save()
+    return res
+      .status(200)
+      .json({ message: 'Doctor unassigned from patient successfully' })
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: 'Error unassigning doctor', error: err.toString() })
+  }
+}

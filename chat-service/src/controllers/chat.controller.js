@@ -643,3 +643,13 @@ exports.getDoctorDoctorRoom = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' })
   }
 }
+
+// Đếm số phòng chat đang hoạt động
+exports.countActiveRooms = async (req, res) => {
+  try {
+    const count = await ChatRoom.countDocuments()
+    res.json({ count })
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}

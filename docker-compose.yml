@@ -16,6 +16,8 @@ services:
       - '3002:3002'
     depends_on:
       - mongo
+    volumes:
+      - ./chat-service:/app
 
   api-gateway:
     build:

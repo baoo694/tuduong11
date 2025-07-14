@@ -71,6 +71,12 @@ router.post(
   userController.adminChangePatientPassword
 )
 
+// Bỏ gán bác sĩ cho bệnh nhân (chỉ admin) - đặt trước các route /patients/:patientId
+router.post(
+  '/patients/:patientId/unassign-doctor',
+  authenticateToken,
+  userController.unassignDoctorForPatient
+)
 // Cập nhật thông tin bệnh nhân (chỉ admin)
 router.put(
   '/patients/:patientId',

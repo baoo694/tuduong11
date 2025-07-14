@@ -341,7 +341,7 @@ async function loadChatMessages() {
 
   try {
     const response = await fetch(
-      `${CHAT_API}/${currentRoom._id}?username=${currentUser.username}`
+      `${CHAT_API}/room/${currentRoom._id}?username=${currentUser.username}`
     )
 
     if (response.ok) {

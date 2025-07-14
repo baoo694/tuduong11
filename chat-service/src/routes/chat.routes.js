@@ -38,6 +38,9 @@ router.get('/doctor-doctor/room', chatController.getDoctorDoctorRoom)
 // Lấy danh sách tất cả phòng chat
 router.get('/rooms', chatController.getAllRooms)
 
+// Đếm số phòng chat
+router.get('/rooms/count', chatController.countActiveRooms)
+
 // Tạo phòng chat mới
 router.post('/createRoom', chatController.createRoom)
 
@@ -60,9 +63,9 @@ router.post('/invite', chatController.inviteToRoom)
 router.post('/accept-invite', chatController.acceptInviteToRoom)
 
 // Lấy danh sách thành viên trong phòng chat
-router.get('/:roomId/members', chatController.getRoomMembers)
+router.get('/room/:roomId/members', chatController.getRoomMembers)
 
 // Lấy danh sách tin nhắn theo roomId
-router.get('/:roomId', chatController.getRoomMessages)
+router.get('/room/:roomId', chatController.getRoomMessages)
 
 module.exports = router

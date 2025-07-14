@@ -144,8 +144,14 @@ async function loadDashboardData() {
     document.getElementById('totalAssignments').textContent =
       assignedPatients.length
 
-    // Placeholder for active chats
-    document.getElementById('activeChats').textContent = '0'
+    // Lấy số phòng chat hoạt động từ chat-service
+    try {
+      const chatRes = await fetch('http://localhost:3002/chat/rooms/count')
+      const chatData = await chatRes.json()
+      document.getElementById('activeChats').textContent = chatData.count || 0
+    } catch (e) {
+      document.getElementById('activeChats').textContent = '0'
+    }
   } catch (error) {
     console.error('Error loading dashboard data:', error)
     showNotification('Lỗi khi tải dữ liệu dashboard', 'error')
@@ -198,11 +204,16 @@ async function loadDoctors() {
   }
 }
 
-// Load patients
+// Sửa loadPatients để hiển thị tên bác sĩ được gán
 async function loadPatients() {
   try {
-    const response = await makeAuthenticatedRequest(`${USER_API}/patients`)
-    const data = await response.json()
+    const [doctorsRes, patientsRes] = await Promise.all([
+      makeAuthenticatedRequest(`${USER_API}/doctors`),
+      makeAuthenticatedRequest(`${USER_API}/patients`),
+    ])
+    const doctorsData = await doctorsRes.json()
+    const data = await patientsRes.json()
+    doctors = doctorsData.doctors || []
     patients = data.patients || []
 
     const tbody = document.getElementById('patientsTableBody')
@@ -215,12 +226,17 @@ async function loadPatients() {
     }
 
     patients.forEach((patient) => {
+      let doctorName = 'Chưa gán'
+      if (patient.assignedDoctor) {
+        const doctor = doctors.find((d) => d._id === patient.assignedDoctor)
+        doctorName = doctor ? doctor.username : 'Đã gán'
+      }
       const row = document.createElement('tr')
       row.innerHTML = `
                 <td>${patient.username}</td>
                 <td>${patient.email}</td>
                 <td>${patient.patientInfo?.phoneNumber || 'N/A'}</td>
-                <td>${patient.assignedDoctor ? 'Đã gán' : 'Chưa gán'}</td>
+                <td>${doctorName}</td>
                 <td>
                     <button class="action-btn edit" onclick="editPatient('${
                       patient._id
@@ -242,12 +258,17 @@ async function loadPatients() {
   }
 }
 
-// Load assignments
+// Sửa loadAssignments để hiển thị tên bác sĩ được gán
 async function loadAssignments() {
   try {
-    const response = await makeAuthenticatedRequest(`${USER_API}/patients`)
-    const data = await response.json()
+    const [doctorsRes, patientsRes] = await Promise.all([
+      makeAuthenticatedRequest(`${USER_API}/doctors`),
+      makeAuthenticatedRequest(`${USER_API}/patients`),
+    ])
+    const doctorsData = await doctorsRes.json()
+    const data = await patientsRes.json()
     const allPatients = data.patients || []
+    const doctors = doctorsData.doctors || []
 
     const tbody = document.getElementById('assignmentsTableBody')
     tbody.innerHTML = ''
@@ -259,12 +280,15 @@ async function loadAssignments() {
     }
 
     allPatients.forEach((patient) => {
+      let doctorName = 'Chưa có bác sĩ'
+      if (patient.assignedDoctor) {
+        const doctor = doctors.find((d) => d._id === patient.assignedDoctor)
+        doctorName = doctor ? doctor.username : 'Đã gán'
+      }
       const row = document.createElement('tr')
       row.innerHTML = `
                 <td>${patient.username}</td>
-                <td>${
-                  patient.assignedDoctor ? 'Có bác sĩ' : 'Chưa có bác sĩ'
-                }</td>
+                <td>${doctorName}</td>
                 <td>${patient.email}</td>
                 <td>
                     <button class="btn-primary" onclick="showAssignmentModal('${
@@ -350,20 +374,41 @@ function hideCreatePatientModal() {
 function showAssignmentModal(patientId = null) {
   document.getElementById('assignmentModal').style.display = 'block'
   document.getElementById('assignmentForm').reset()
-
+  const patientSelect = document.getElementById('assignmentPatient')
   if (patientId) {
-    document.getElementById('assignmentPatient').value = patientId
+    patientSelect.disabled = true
+    loadAssignmentOptions(patientId).then(() => {
+      patientSelect.value = patientId
+      // Thêm input hidden nếu chưa có
+      let hidden = document.getElementById('assignmentPatientHidden')
+      if (!hidden) {
+        hidden = document.createElement('input')
+        hidden.type = 'hidden'
+        hidden.id = 'assignmentPatientHidden'
+        hidden.name = 'patientId'
+        document.getElementById('assignmentForm').appendChild(hidden)
+      }
+      hidden.value = patientId
+    })
+  } else {
+    patientSelect.disabled = false
+    // Xóa input hidden nếu có
+    const hidden = document.getElementById('assignmentPatientHidden')
+    if (hidden) hidden.remove()
+    loadAssignmentOptions()
   }
-
-  loadAssignmentOptions()
 }
 
 function hideAssignmentModal() {
   document.getElementById('assignmentModal').style.display = 'none'
+  document.getElementById('assignmentPatient').disabled = false
+  // Xóa input hidden nếu có
+  const hidden = document.getElementById('assignmentPatientHidden')
+  if (hidden) hidden.remove()
 }
 
-// Load options for assignment modal
-async function loadAssignmentOptions() {
+// Sửa loadAssignmentOptions để lọc bác sĩ chưa được gán cho bệnh nhân
+async function loadAssignmentOptions(patientId = null) {
   try {
     const [doctorsRes, patientsRes] = await Promise.all([
       makeAuthenticatedRequest(`${USER_API}/doctors`),
@@ -372,6 +417,13 @@ async function loadAssignmentOptions() {
 
     const doctorsData = await doctorsRes.json()
     const patientsData = await patientsRes.json()
+
+    // Lấy patient đang chọn (nếu có)
+    let assignedDoctorId = null
+    if (patientId) {
+      const patient = patientsData.patients?.find((p) => p._id === patientId)
+      assignedDoctorId = patient?.assignedDoctor || null
+    }
 
     // Populate patient select
     const patientSelect = document.getElementById('assignmentPatient')
@@ -383,16 +435,18 @@ async function loadAssignmentOptions() {
       patientSelect.appendChild(option)
     })
 
-    // Populate doctor select
+    // Populate doctor select, chỉ hiển thị bác sĩ chưa được gán cho bệnh nhân này
     const doctorSelect = document.getElementById('assignmentDoctor')
     doctorSelect.innerHTML = '<option value="">-- Chọn Bác sĩ --</option>'
     doctorsData.doctors?.forEach((doctor) => {
-      const option = document.createElement('option')
-      option.value = doctor._id
-      option.textContent = `${doctor.username} - ${
-        doctor.doctorInfo?.specialization || 'N/A'
-      }`
-      doctorSelect.appendChild(option)
+      if (!assignedDoctorId || doctor._id !== assignedDoctorId) {
+        const option = document.createElement('option')
+        option.value = doctor._id
+        option.textContent = `${doctor.username} - ${
+          doctor.doctorInfo?.specialization || 'N/A'
+        }`
+        doctorSelect.appendChild(option)
+      }
     })
   } catch (error) {
     console.error('Error loading assignment options:', error)
@@ -628,6 +682,36 @@ async function handleAssignment(event) {
   } catch (error) {
     console.error('Error assigning doctor:', error)
     showNotification('Lỗi khi gán bác sĩ', 'error')
+  }
+}
+
+async function unassignDoctor() {
+  const patientId =
+    document.getElementById('assignmentPatient').value ||
+    document.getElementById('assignmentPatientHidden')?.value
+  if (!patientId) return
+  try {
+    const response = await fetch(
+      `${USER_API}/patients/${patientId}/unassign-doctor`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    )
+    const data = await response.json()
+    if (response.ok) {
+      showNotification('Đã bỏ gán bác sĩ cho bệnh nhân', 'success')
+      hideAssignmentModal()
+      loadAssignments()
+      loadPatients()
+    } else {
+      showNotification(data.message || 'Lỗi khi bỏ gán bác sĩ', 'error')
+    }
+  } catch (error) {
+    showNotification('Lỗi khi bỏ gán bác sĩ', 'error')
   }
 }
 
