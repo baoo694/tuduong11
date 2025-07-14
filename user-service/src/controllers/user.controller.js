@@ -66,6 +66,7 @@ exports.createInitialAdmin = async (req, res) => {
 // Tạo tài khoản bác sĩ (chỉ admin mới có quyền)
 exports.createDoctor = async (req, res) => {
   try {
+    console.log('BODY:', req.body) // Thêm dòng này
     const adminId = req.user.id
     const admin = await User.findById(adminId)
 
@@ -82,6 +83,7 @@ exports.createDoctor = async (req, res) => {
       specialization,
       licenseNumber,
       department,
+      phoneNumber,
     } = req.body
 
     if (
@@ -116,6 +118,7 @@ exports.createDoctor = async (req, res) => {
         specialization,
         licenseNumber,
         department,
+        phoneNumber,
       },
     })
 
@@ -541,19 +544,29 @@ exports.updateUserProfile = async (req, res) => {
     delete updateData.role
     delete updateData.isVerified
     delete updateData.createdBy
+    delete updateData.username // Luôn xóa username
 
-    const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
-      new: true,
-      runValidators: true,
-    }).select('-password')
-
-    if (!updatedUser) {
+    const user = await User.findById(userId)
+    if (!user) {
       return res.status(404).json({ message: 'User not found' })
     }
 
+    // Merge doctorInfo nếu có
+    if (updateData.doctorInfo) {
+      user.doctorInfo = {
+        ...user.doctorInfo,
+        ...updateData.doctorInfo,
+      }
+      delete updateData.doctorInfo
+    }
+
+    // Merge các trường còn lại
+    Object.assign(user, updateData)
+    await user.save()
+
     return res.status(200).json({
       message: 'Profile updated successfully',
-      user: updatedUser,
+      user,
     })
   } catch (err) {
     console.error('Error in updateUserProfile:', err)
@@ -600,6 +613,72 @@ exports.deleteUserAccount = async (req, res) => {
   }
 }
 
+// Cập nhật thông tin bác sĩ (chỉ admin mới có quyền)
+exports.updateDoctor = async (req, res) => {
+  try {
+    console.log('Update doctor request:', req.body) // Debug log
+    const adminId = req.user.id
+    const admin = await User.findById(adminId)
+
+    if (!admin || admin.role !== 'admin') {
+      return res
+        .status(403)
+        .json({ message: 'Only admin can update doctor accounts' })
+    }
+
+    const { doctorId } = req.params
+    const updateData = req.body
+
+    // Không cho phép cập nhật một số trường nhạy cảm
+    delete updateData.password
+    delete updateData.email
+    delete updateData.role
+    delete updateData.isVerified
+    delete updateData.createdBy
+    delete updateData.username
+
+    const doctor = await User.findById(doctorId)
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' })
+    }
+
+    if (doctor.role !== 'doctor') {
+      return res.status(400).json({ message: 'User is not a doctor' })
+    }
+
+    // Merge doctorInfo nếu có
+    if (updateData.doctorInfo) {
+      doctor.doctorInfo = {
+        ...doctor.doctorInfo,
+        ...updateData.doctorInfo,
+      }
+      delete updateData.doctorInfo
+    }
+
+    // Merge các trường còn lại
+    Object.assign(doctor, updateData)
+    await doctor.save()
+
+    console.log('Doctor updated successfully:', doctor) // Debug log
+
+    return res.status(200).json({
+      message: 'Doctor updated successfully',
+      doctor: {
+        _id: doctor._id,
+        username: doctor.username,
+        email: doctor.email,
+        role: doctor.role,
+        doctorInfo: doctor.doctorInfo,
+      },
+    })
+  } catch (err) {
+    console.error('Error in updateDoctor:', err)
+    return res
+      .status(500)
+      .json({ message: 'Error updating doctor', error: err.toString() })
+  }
+}
+
 exports.getProfile = async (req, res) => {
   try {
     // Lấy user từ DB dựa vào id trong token
@@ -611,5 +690,34 @@ exports.getProfile = async (req, res) => {
     res.json({ user })
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' })
+  }
+}
+
+exports.adminChangeDoctorPassword = async (req, res) => {
+  try {
+    const adminId = req.user.id
+    const admin = await User.findById(adminId)
+    if (!admin || admin.role !== 'admin') {
+      return res
+        .status(403)
+        .json({ message: 'Only admin can change doctor password' })
+    }
+    const { doctorId } = req.params
+    const { newPassword } = req.body
+    if (!newPassword) {
+      return res.status(400).json({ message: 'Missing new password' })
+    }
+    const doctor = await User.findById(doctorId)
+    if (!doctor || doctor.role !== 'doctor') {
+      return res.status(404).json({ message: 'Doctor not found' })
+    }
+    const salt = await bcrypt.genSalt(10)
+    doctor.password = await bcrypt.hash(newPassword, salt)
+    await doctor.save()
+    return res.status(200).json({ message: 'Password updated successfully' })
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: 'Error updating password', error: err.toString() })
   }
 }

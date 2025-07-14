@@ -16,6 +16,7 @@ const UserSchema = new mongoose.Schema(
       specialization: { type: String },
       licenseNumber: { type: String },
       department: { type: String },
+      phoneNumber: { type: String },
     },
     // Thông tin bổ sung cho bệnh nhân
     patientInfo: {

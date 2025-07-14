@@ -42,6 +42,15 @@ router.post(
   userController.assignDoctorToPatient
 )
 
+// Thay đổi mật khẩu bác sĩ (chỉ admin) - phải đặt trước route /doctors
+router.post(
+  '/doctors/:doctorId/change-password',
+  authenticateToken,
+  userController.adminChangeDoctorPassword
+)
+// Cập nhật thông tin bác sĩ (chỉ admin mới có quyền)
+router.put('/doctors/:doctorId', authenticateToken, userController.updateDoctor)
+
 // Lấy danh sách tất cả bác sĩ
 router.get('/doctors', userController.getAllDoctors)
 

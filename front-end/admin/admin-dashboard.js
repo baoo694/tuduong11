@@ -164,7 +164,7 @@ async function loadDoctors() {
 
     if (doctors.length === 0) {
       tbody.innerHTML =
-        '<tr><td colspan="6" class="loading">Không có bác sĩ nào</td></tr>'
+        '<tr><td colspan="7" class="loading">Không có bác sĩ nào</td></tr>'
       return
     }
 
@@ -175,6 +175,7 @@ async function loadDoctors() {
                 <td>${doctor.email}</td>
                 <td>${doctor.doctorInfo?.specialization || 'N/A'}</td>
                 <td>${doctor.doctorInfo?.department || 'N/A'}</td>
+                <td>${doctor.doctorInfo?.phoneNumber || 'N/A'}</td>
                 <td>${doctor.patients?.length || 0}</td>
                 <td>
                     <button class="action-btn edit" onclick="editDoctor('${
@@ -299,14 +300,19 @@ async function loadStatistics() {
 function showCreateDoctorModal(isEdit = false) {
   document.getElementById('createDoctorModal').style.display = 'block'
   document.getElementById('createDoctorForm').reset()
+  const passwordInput = document.getElementById('doctorPassword')
   if (isEdit) {
     document.getElementById('doctorModalTitle').innerHTML =
       '<i class="fas fa-user-md"></i> Chỉnh sửa Bác sĩ'
     document.getElementById('doctorModalSubmitBtn').textContent = 'Cập nhật'
+    passwordInput.required = false
+    passwordInput.placeholder = 'Để trống nếu không muốn đổi mật khẩu'
   } else {
     document.getElementById('doctorModalTitle').innerHTML =
       '<i class="fas fa-user-md"></i> Thêm Bác sĩ mới'
     document.getElementById('doctorModalSubmitBtn').textContent = 'Thêm Bác sĩ'
+    passwordInput.required = true
+    passwordInput.placeholder = ''
   }
 }
 
@@ -381,25 +387,37 @@ async function handleCreateDoctor(event) {
   event.preventDefault()
 
   const formData = new FormData(event.target)
-  const doctorData = {
-    username: formData.get('username'),
-    email: formData.get('email'),
-    password: formData.get('password'),
-    doctorInfo: {
-      specialization: formData.get('specialization'),
-      licenseNumber: formData.get('licenseNumber'),
-      department: formData.get('department'),
-      phoneNumber: formData.get('addDoctorPhoneNumber'),
-    },
-  }
-
   const editId = event.target.dataset.editId
+
+  let doctorData
+  if (editId) {
+    // Khi cập nhật, KHÔNG gửi username
+    doctorData = {
+      doctorInfo: {
+        specialization: formData.get('doctorInfo.specialization'),
+        licenseNumber: formData.get('doctorInfo.licenseNumber'),
+        department: formData.get('doctorInfo.department'),
+        phoneNumber: formData.get('doctorInfo.phoneNumber'),
+      },
+    }
+  } else {
+    // Khi tạo mới, gửi đầy đủ
+    doctorData = {
+      username: formData.get('username'),
+      email: formData.get('email'),
+      password: formData.get('password'),
+      specialization: formData.get('doctorInfo.specialization'),
+      licenseNumber: formData.get('doctorInfo.licenseNumber'),
+      department: formData.get('doctorInfo.department'),
+      phoneNumber: formData.get('doctorInfo.phoneNumber'),
+    }
+  }
 
   try {
     let response, data
     if (editId) {
       // Cập nhật bác sĩ
-      response = await fetch(`${USER_API}/profile`, {
+      response = await fetch(`${USER_API}/doctors/${editId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -409,7 +427,29 @@ async function handleCreateDoctor(event) {
       })
       data = await response.json()
       if (response.ok) {
-        showNotification('Cập nhật thông tin bác sĩ thành công', 'success')
+        // Nếu có nhập mật khẩu mới thì gọi API đổi mật khẩu
+        const newPassword = formData.get('password')
+        if (newPassword) {
+          const pwRes = await fetch(
+            `${USER_API}/doctors/${editId}/change-password`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+              body: JSON.stringify({ newPassword }),
+            }
+          )
+          const pwData = await pwRes.json()
+          if (pwRes.ok) {
+            showNotification('Đổi mật khẩu thành công', 'success')
+          } else {
+            showNotification(pwData.message || 'Lỗi khi đổi mật khẩu', 'error')
+          }
+        } else {
+          showNotification('Cập nhật thông tin bác sĩ thành công', 'success')
+        }
       } else {
         showNotification(data.message || 'Lỗi khi cập nhật bác sĩ', 'error')
       }
@@ -526,7 +566,7 @@ async function handleAssignment(event) {
 function editDoctor(doctorId) {
   const doctor = doctors.find((d) => d._id === doctorId)
   if (doctor) {
-    // Populate modal with doctor data
+    showCreateDoctorModal(true)
     document.getElementById('doctorUsername').value = doctor.username
     document.getElementById('doctorEmail').value = doctor.email
     document.getElementById('specialization').value =
@@ -537,9 +577,6 @@ function editDoctor(doctorId) {
       doctor.doctorInfo?.department || ''
     document.getElementById('addDoctorPhoneNumber').value =
       doctor.doctorInfo?.phoneNumber || ''
-
-    showCreateDoctorModal(true)
-    // Change form action to update
     document.getElementById('createDoctorForm').dataset.editId = doctorId
   }
 }
