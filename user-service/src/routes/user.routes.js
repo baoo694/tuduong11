@@ -64,6 +64,20 @@ router.delete(
   userController.deleteUserAccount
 )
 
+// Thay đổi mật khẩu bệnh nhân (chỉ admin)
+router.post(
+  '/patients/:patientId/change-password',
+  authenticateToken,
+  userController.adminChangePatientPassword
+)
+
+// Cập nhật thông tin bệnh nhân (chỉ admin)
+router.put(
+  '/patients/:patientId',
+  authenticateToken,
+  userController.updatePatient
+)
+
 // ===== ROUTES CHO BÁC SĨ =====
 
 // Lấy danh sách bệnh nhân của bác sĩ

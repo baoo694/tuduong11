@@ -320,9 +320,27 @@ function hideCreateDoctorModal() {
   document.getElementById('createDoctorModal').style.display = 'none'
 }
 
-function showCreatePatientModal() {
+function showCreatePatientModal(isEdit = false) {
   document.getElementById('createPatientModal').style.display = 'block'
   document.getElementById('createPatientForm').reset()
+  const passwordInput = document.getElementById('patientPassword')
+  const modalTitle = document.querySelector(
+    '#createPatientModal .modal-header h3'
+  )
+  const submitBtn = document.querySelector('#createPatientModal .btn-primary')
+  if (isEdit) {
+    passwordInput.required = false
+    passwordInput.placeholder = 'Để trống nếu không muốn đổi mật khẩu'
+    modalTitle.innerHTML =
+      '<i class="fas fa-user-injured"></i> Chỉnh sửa Bệnh nhân'
+    submitBtn.textContent = 'Cập nhật'
+  } else {
+    passwordInput.required = true
+    passwordInput.placeholder = ''
+    modalTitle.innerHTML =
+      '<i class="fas fa-user-injured"></i> Thêm Bệnh nhân mới'
+    submitBtn.textContent = 'Thêm Bệnh nhân'
+  }
 }
 
 function hideCreatePatientModal() {
@@ -487,43 +505,94 @@ async function handleCreateDoctor(event) {
 
 async function handleCreatePatient(event) {
   event.preventDefault()
-
   const formData = new FormData(event.target)
-  const patientData = {
-    username: formData.get('username'),
-    email: formData.get('email'),
-    password: formData.get('password'),
-    phoneNumber: formData.get('phoneNumber'),
-    address: formData.get('address'),
-    emergencyContact: formData.get('emergencyContact'),
-  }
-
-  try {
-    const response = await fetch(`${USER_API}/create-patient`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify(patientData),
-    })
-
-    const data = await response.json()
-
-    if (response.ok) {
-      showNotification('Tạo tài khoản bệnh nhân thành công', 'success')
-      hideCreatePatientModal()
-      loadPatients()
-      loadDashboardData()
-    } else {
-      showNotification(
-        data.message || 'Lỗi khi tạo tài khoản bệnh nhân',
-        'error'
-      )
+  const editId = event.target.dataset.editId
+  let patientData
+  if (editId) {
+    // Khi cập nhật, KHÔNG gửi username/email/password
+    patientData = {
+      phoneNumber: formData.get('phoneNumber'),
+      address: formData.get('address'),
+      emergencyContact: formData.get('emergencyContact'),
     }
+  } else {
+    // Khi tạo mới, gửi đầy đủ
+    patientData = {
+      username: formData.get('username'),
+      email: formData.get('email'),
+      password: formData.get('password'),
+      phoneNumber: formData.get('phoneNumber'),
+      address: formData.get('address'),
+      emergencyContact: formData.get('emergencyContact'),
+    }
+  }
+  try {
+    let response, data
+    if (editId) {
+      // Cập nhật bệnh nhân
+      response = await fetch(`${USER_API}/patients/${editId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(patientData),
+      })
+      data = await response.json()
+      if (response.ok) {
+        // Nếu có nhập mật khẩu mới thì gọi API đổi mật khẩu
+        const newPassword = formData.get('password')
+        if (newPassword) {
+          const pwRes = await fetch(
+            `${USER_API}/patients/${editId}/change-password`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+              body: JSON.stringify({ newPassword }),
+            }
+          )
+          const pwData = await pwRes.json()
+          if (pwRes.ok) {
+            showNotification('Đổi mật khẩu thành công', 'success')
+          } else {
+            showNotification(pwData.message || 'Lỗi khi đổi mật khẩu', 'error')
+          }
+        } else {
+          showNotification('Cập nhật thông tin bệnh nhân thành công', 'success')
+        }
+      } else {
+        showNotification(data.message || 'Lỗi khi cập nhật bệnh nhân', 'error')
+      }
+      delete event.target.dataset.editId
+    } else {
+      // Tạo mới bệnh nhân
+      response = await fetch(`${USER_API}/create-patient`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(patientData),
+      })
+      data = await response.json()
+      if (response.ok) {
+        showNotification('Tạo tài khoản bệnh nhân thành công', 'success')
+      } else {
+        showNotification(
+          data.message || 'Lỗi khi tạo tài khoản bệnh nhân',
+          'error'
+        )
+      }
+    }
+    hideCreatePatientModal()
+    loadPatients()
+    loadDashboardData()
   } catch (error) {
-    console.error('Error creating patient:', error)
-    showNotification('Lỗi khi tạo tài khoản bệnh nhân', 'error')
+    console.error('Error creating/updating patient:', error)
+    showNotification('Lỗi khi tạo/cập nhật tài khoản bệnh nhân', 'error')
   }
 }
 
@@ -584,7 +653,7 @@ function editDoctor(doctorId) {
 function editPatient(patientId) {
   const patient = patients.find((p) => p._id === patientId)
   if (patient) {
-    // Populate modal with patient data
+    showCreatePatientModal(true)
     document.getElementById('patientUsername').value = patient.username
     document.getElementById('patientEmail').value = patient.email
     document.getElementById('phoneNumber').value =
@@ -593,9 +662,6 @@ function editPatient(patientId) {
       patient.patientInfo?.address || ''
     document.getElementById('emergencyContact').value =
       patient.patientInfo?.emergencyContact || ''
-
-    showCreatePatientModal()
-    // Change form action to update
     document.getElementById('createPatientForm').dataset.editId = patientId
   }
 }
