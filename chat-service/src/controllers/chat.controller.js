@@ -653,3 +653,17 @@ exports.countActiveRooms = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' })
   }
 }
+
+// Thống kê hoạt động chat toàn hệ thống
+exports.getChatActivityStats = async (req, res) => {
+  try {
+    const totalRooms = await ChatRoom.countDocuments()
+    const totalMessagesAgg = await ChatRoom.aggregate([
+      { $group: { _id: null, total: { $sum: { $size: '$messages' } } } },
+    ])
+    const totalMessages = totalMessagesAgg[0]?.total || 0
+    res.json({ totalRooms, totalMessages })
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}

@@ -27,6 +27,12 @@ router.get('/list', userController.listUsers)
 // Đổi mật khẩu
 router.post('/change-password', userController.changePassword)
 
+// Thống kê phân bố user theo role
+router.get(
+  '/statistics/role-distribution',
+  userController.getUserRoleDistribution
+)
+
 // ===== ROUTES CHO ADMIN =====
 
 // Tạo tài khoản bác sĩ (chỉ admin mới có quyền)

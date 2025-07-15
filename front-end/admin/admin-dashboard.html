@@ -217,14 +217,14 @@
               <div class="chart-container">
                 <h3>Phân bố người dùng</h3>
                 <div class="chart" id="userDistributionChart">
-                  <!-- Chart will be rendered here -->
+                  <canvas id="userDistributionCanvas"></canvas>
                 </div>
               </div>
 
               <div class="chart-container">
                 <h3>Hoạt động chat</h3>
                 <div class="chart" id="chatActivityChart">
-                  <!-- Chart will be rendered here -->
+                  <canvas id="chatActivityCanvas"></canvas>
                 </div>
               </div>
             </div>
@@ -427,5 +427,7 @@
     <div id="notification" class="notification"></div>
 
     <script src="/admin/admin-dashboard.js"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </body>
 </html>

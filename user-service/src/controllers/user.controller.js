@@ -848,3 +848,20 @@ exports.unassignDoctorForPatient = async (req, res) => {
       .json({ message: 'Error unassigning doctor', error: err.toString() })
   }
 }
+
+// Thống kê phân bố user theo role
+exports.getUserRoleDistribution = async (req, res) => {
+  try {
+    const roles = ['admin', 'doctor', 'patient']
+    const counts = await Promise.all(
+      roles.map((role) => User.countDocuments({ role }))
+    )
+    const result = {}
+    roles.forEach((role, idx) => {
+      result[role] = counts[idx]
+    })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}

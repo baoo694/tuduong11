@@ -308,16 +308,8 @@ async function loadAssignments() {
 
 // Load statistics
 async function loadStatistics() {
-  try {
-    // Placeholder for statistics
-    document.getElementById('userDistributionChart').innerHTML =
-      '<p>Biểu đồ phân bố người dùng sẽ được hiển thị ở đây</p>'
-    document.getElementById('chatActivityChart').innerHTML =
-      '<p>Biểu đồ hoạt động chat sẽ được hiển thị ở đây</p>'
-  } catch (error) {
-    console.error('Error loading statistics:', error)
-    showNotification('Lỗi khi tải thống kê', 'error')
-  }
+  renderUserDistributionChart()
+  renderChatActivityChart()
 }
 
 // Modal functions
@@ -840,4 +832,81 @@ async function makeAuthenticatedRequest(url, options = {}) {
   }
 
   return fetch(url, finalOptions)
+}
+
+// Vẽ biểu đồ phân bố user bằng Chart.js
+async function renderUserDistributionChart() {
+  try {
+    const res = await fetch(
+      'http://localhost:3000/api/users/statistics/role-distribution'
+    )
+    const data = await res.json()
+    const ctx = document
+      .getElementById('userDistributionCanvas')
+      .getContext('2d')
+    if (window.userDistChart) window.userDistChart.destroy()
+    window.userDistChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ['Admin', 'Bác sĩ', 'Bệnh nhân'],
+        datasets: [
+          {
+            data: [data.admin, data.doctor, data.patient],
+            backgroundColor: ['#6366f1', '#34d399', '#f59e42'],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom' },
+          title: { display: false },
+        },
+      },
+    })
+  } catch (e) {
+    console.error('Lỗi khi vẽ biểu đồ phân bố user:', e)
+  }
+}
+
+// Vẽ biểu đồ hoạt động chat bằng Chart.js
+async function renderChatActivityChart() {
+  try {
+    const res = await fetch(
+      'http://localhost:3000/api/chat/statistics/activity'
+    )
+    const data = await res.json()
+    const ctx = document.getElementById('chatActivityCanvas').getContext('2d')
+    if (
+      window.chatActivityChart &&
+      typeof window.chatActivityChart.destroy === 'function'
+    ) {
+      window.chatActivityChart.destroy()
+    }
+    window.chatActivityChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Phòng chat', 'Tin nhắn'],
+        datasets: [
+          {
+            label: 'Số lượng',
+            data: [data.totalRooms, data.totalMessages],
+            backgroundColor: ['#6366f1', '#f59e42'],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { display: false },
+        },
+        scales: {
+          y: { beginAtZero: true },
+        },
+      },
+    })
+  } catch (e) {
+    console.error('Lỗi khi vẽ biểu đồ hoạt động chat:', e)
+  }
 }

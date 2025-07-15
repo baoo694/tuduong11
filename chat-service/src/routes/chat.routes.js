@@ -68,4 +68,7 @@ router.get('/room/:roomId/members', chatController.getRoomMembers)
 // Lấy danh sách tin nhắn theo roomId
 router.get('/room/:roomId', chatController.getRoomMessages)
 
+// Thống kê hoạt động chat toàn hệ thống
+router.get('/statistics/activity', chatController.getChatActivityStats)
+
 module.exports = router
