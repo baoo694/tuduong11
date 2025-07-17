@@ -3,6 +3,7 @@ let socket
 let currentUser = null
 let currentRoom = null
 let assignedDoctor = null
+let allMessages = [] // Lưu toàn bộ tin nhắn của phòng chat hiện tại
 
 // DOM elements
 const patientNameEl = document.getElementById('patientName')
@@ -28,6 +29,43 @@ const CHAT_API = `${API_BASE}/chat`
 document.addEventListener('DOMContentLoaded', () => {
   initializeApp()
   setupEventListeners()
+  // Tìm kiếm tin nhắn với UX mới
+  const searchInput = document.getElementById('searchMessageInput')
+  const toggleSearchBtn = document.getElementById('toggleSearchBtn')
+  if (toggleSearchBtn && searchInput) {
+    toggleSearchBtn.addEventListener('click', () => {
+      if (
+        searchInput.style.display === 'none' ||
+        searchInput.style.display === ''
+      ) {
+        searchInput.style.display = 'block'
+        searchInput.focus()
+        searchInput.classList.add('fade-in')
+      } else {
+        searchInput.value = ''
+        searchInput.style.display = 'none'
+        displayMessages(allMessages)
+      }
+    })
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        searchInput.style.display = 'none'
+        searchInput.value = ''
+        displayMessages(allMessages)
+      }, 200)
+    })
+    searchInput.addEventListener('input', (e) => {
+      const keyword = e.target.value.trim()
+      if (!keyword) {
+        displayMessages(allMessages)
+      } else {
+        const filtered = allMessages.filter((m) =>
+          (m.text || '').toLowerCase().includes(keyword.toLowerCase())
+        )
+        displayMessages(filtered, keyword)
+      }
+    })
+  }
 })
 
 function initializeApp() {
@@ -338,17 +376,14 @@ function updateConnectionStatus(connected) {
 
 async function loadChatMessages() {
   if (!currentRoom) return
-
   try {
     const response = await fetch(
       `${CHAT_API}/room/${currentRoom._id}?username=${currentUser.username}`
     )
-
     if (response.ok) {
       const data = await response.json()
-      displayMessages(data.messages)
-    } else {
-      throw new Error('Failed to load messages')
+      allMessages = data.messages || []
+      displayMessages(allMessages)
     }
   } catch (error) {
     console.error('Error loading messages:', error)
@@ -356,44 +391,43 @@ async function loadChatMessages() {
   }
 }
 
-function displayMessages(messages) {
+function displayMessages(messages, keyword = '') {
   chatMessagesEl.innerHTML = ''
-
-  if (messages.length === 0) {
-    showWelcomeMessage()
-    return
-  }
-
   messages.forEach((message) => {
-    addMessageToChat(message)
+    addMessageToChat(message, keyword)
   })
-
   scrollToBottom()
 }
 
-function addMessageToChat(message) {
+function addMessageToChat(message, keyword = '') {
   const isOwnMessage = message.username === currentUser.username
   const messageEl = document.createElement('div')
   messageEl.className = `message ${isOwnMessage ? 'sent' : 'received'}`
-
   const time = new Date(message.createdAt).toLocaleTimeString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
   })
-
+  // Highlight từ khóa nếu có
+  let text = message.text
+  if (keyword && text) {
+    const re = new RegExp(
+      `(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
+      'gi'
+    )
+    text = text.replace(re, '<mark>$1</mark>')
+  }
   messageEl.innerHTML = `
         <div class="message-avatar">
             ${message.username.charAt(0).toUpperCase()}
         </div>
         <div class="message-content">
-            <div class="message-bubble">${message.text}</div>
+            <div class="message-bubble">${text}</div>
             <div class="message-info">
                 <span class="message-sender">${message.username}</span>
                 <span class="message-time">${time}</span>
             </div>
         </div>
     `
-
   chatMessagesEl.appendChild(messageEl)
   scrollToBottom()
 }
@@ -454,6 +488,14 @@ function sendMessage() {
       if (!response.ok) {
         throw new Error('Failed to send message')
       }
+      // Thêm tin nhắn mới vào allMessages và hiển thị ngay
+      const now = new Date().toISOString()
+      const newMsg = {
+        ...messageData,
+        createdAt: now,
+      }
+      allMessages.push(newMsg)
+      displayMessages(allMessages)
     })
     .catch((error) => {
       console.error('Error sending message:', error)

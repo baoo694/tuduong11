@@ -26,6 +26,7 @@ const io = new Server(server, {
       'http://localhost:3000',
       'http://localhost:3004', // Thêm dòng này cho frontend Docker
       'http://localhost:5500',
+      'http://localhost:8080', // Cho phép front-end truy cập qua Docker
     ],
     methods: ['GET', 'POST'],
     credentials: true,

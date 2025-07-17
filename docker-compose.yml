@@ -67,5 +67,17 @@ services:
     ports:
       - '6379:6379'
 
+  front-end:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+    container_name: front-end
+    ports:
+      - '8080:80'
+    volumes:
+      - ./front-end:/usr/share/nginx/html
+    depends_on:
+      - api-gateway
+
 volumes:
   mongo_data:

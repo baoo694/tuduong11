@@ -4,6 +4,7 @@ let currentUser = null
 let currentRoom = null
 let selectedPatient = null
 let patientList = []
+let allMessages = [] // Lưu toàn bộ tin nhắn của phòng chat hiện tại
 
 // DOM elements
 const doctorNameEl = document.getElementById('doctorName')
@@ -19,6 +20,7 @@ const updateProfileBtnEl = document.getElementById('updateProfileBtn')
 const updateProfileModalEl = document.getElementById('updateProfileModal')
 const updateProfileFormEl = document.getElementById('updateProfileForm')
 const notificationEl = document.getElementById('notification')
+const searchPatientInputEl = document.getElementById('searchPatientInput')
 
 // API endpoints
 const API_BASE = 'http://localhost:3000/api'
@@ -29,6 +31,62 @@ const CHAT_API = `${API_BASE}/chat`
 document.addEventListener('DOMContentLoaded', () => {
   initializeApp()
   setupEventListeners()
+  // Tìm kiếm tin nhắn với UX mới
+  const searchInput = document.getElementById('searchMessageInput')
+  const toggleSearchBtn = document.getElementById('toggleSearchBtn')
+  if (toggleSearchBtn && searchInput) {
+    toggleSearchBtn.addEventListener('click', () => {
+      if (
+        searchInput.style.display === 'none' ||
+        searchInput.style.display === ''
+      ) {
+        searchInput.style.display = 'block'
+        searchInput.focus()
+        searchInput.classList.add('fade-in')
+      } else {
+        searchInput.value = ''
+        searchInput.style.display = 'none'
+        displayMessages(allMessages)
+      }
+    })
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        searchInput.style.display = 'none'
+        searchInput.value = ''
+        displayMessages(allMessages)
+      }, 200)
+    })
+    searchInput.addEventListener('input', (e) => {
+      const keyword = e.target.value.trim()
+      if (!keyword) {
+        displayMessages(allMessages)
+      } else {
+        const filtered = allMessages.filter((m) =>
+          (m.text || m.content || '')
+            .toLowerCase()
+            .includes(keyword.toLowerCase())
+        )
+        displayMessages(filtered, keyword)
+      }
+    })
+  }
+  // Tìm kiếm bệnh nhân
+  if (searchPatientInputEl) {
+    searchPatientInputEl.addEventListener('input', (e) => {
+      const keyword = e.target.value.trim().toLowerCase()
+      if (!keyword) {
+        displayPatientList(patientList)
+      } else {
+        const filtered = patientList.filter((p) => {
+          return (
+            (p.username && p.username.toLowerCase().includes(keyword)) ||
+            (p.email && p.email.toLowerCase().includes(keyword))
+          )
+        })
+        displayPatientList(filtered)
+      }
+    })
+  }
 })
 
 function initializeApp() {
@@ -421,22 +479,23 @@ async function loadChatMessages() {
     )
     if (response.ok) {
       const data = await response.json()
-      displayMessages(data.messages)
+      allMessages = data.messages || []
+      displayMessages(allMessages)
     }
   } catch (error) {
     console.error('Error loading messages:', error)
   }
 }
 
-function displayMessages(messages) {
+function displayMessages(messages, keyword = '') {
   chatMessagesEl.innerHTML = ''
   messages.forEach((message) => {
-    addMessageToChat(message)
+    addMessageToChat(message, keyword)
   })
   scrollToBottom()
 }
 
-function addMessageToChat(message) {
+function addMessageToChat(message, keyword = '') {
   // Nếu là system message
   if (message.type === 'system') {
     const messageHtml = `
@@ -458,11 +517,21 @@ function addMessageToChat(message) {
     (message.senderId && message.senderId === currentUser._id) ||
     message.username === currentUser.username
 
+  // Highlight từ khóa nếu có
+  let text = message.text || message.content
+  if (keyword && text) {
+    const re = new RegExp(
+      `(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
+      'gi'
+    )
+    text = text.replace(re, '<mark>$1</mark>')
+  }
+
   const messageHtml = `
     <div class="message ${isMe ? 'sent' : ''}">
       <div class="message-avatar">${avatar}</div>
       <div class="message-content">
-        <div class="message-bubble">${message.text || message.content}</div>
+        <div class="message-bubble">${text}</div>
         <div class="message-info">
           <span class="message-sender">${displayName}</span>
           <span class="message-time">${time}</span>
@@ -533,6 +602,14 @@ function sendMessage() {
     .then((response) => {
       if (response.ok) {
         console.log('Message sent successfully via API')
+        // Thêm tin nhắn mới vào allMessages và hiển thị ngay
+        const now = new Date().toISOString()
+        const newMsg = {
+          ...messageData,
+          createdAt: now,
+        }
+        allMessages.push(newMsg)
+        displayMessages(allMessages)
       } else {
         console.error('Failed to send message via API')
         showNotification('Lỗi khi gửi tin nhắn', 'error')
