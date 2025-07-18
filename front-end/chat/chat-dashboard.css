@@ -108,7 +108,8 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: 100%;
 }
 
 .sidebar-section {
@@ -140,8 +141,8 @@ body {
   border: 1px solid #e2e8f0;
   flex: 1 1 auto;
   min-height: 0;
-  max-height: 40vh;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .patient-list .loading {
@@ -284,8 +285,8 @@ body {
   border-radius: 12px;
   padding: 1rem;
   border: 1px solid #e2e8f0;
-  max-height: 20vh;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .doctor-info .loading {
