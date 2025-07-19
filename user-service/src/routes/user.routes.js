@@ -63,6 +63,14 @@ router.get('/doctors', userController.getAllDoctors)
 // Lấy danh sách tất cả bệnh nhân
 router.get('/patients', userController.getAllPatients)
 
+// Test route để debug
+router.get('/test/:userId', (req, res) => {
+  res.json({ message: 'Test route working', userId: req.params.userId })
+})
+
+// Lấy thông tin user theo ID
+router.get('/user/:userId', userController.getUserById)
+
 // Xóa tài khoản (chỉ admin mới có quyền)
 router.delete(
   '/users/:userId',

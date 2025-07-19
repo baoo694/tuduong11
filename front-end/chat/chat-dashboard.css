@@ -141,8 +141,28 @@ body {
   border: 1px solid #e2e8f0;
   flex: 1 1 auto;
   min-height: 0;
-  max-height: none;
-  overflow: visible;
+  max-height: 200px; /* Giới hạn chiều cao để hiển thị ~2 bệnh nhân */
+  overflow-y: auto; /* Cho phép cuộn dọc */
+  overflow-x: hidden; /* Ẩn cuộn ngang */
+}
+
+/* Custom scrollbar cho patient list */
+.patient-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.patient-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.patient-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.patient-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .patient-list .loading {
@@ -154,8 +174,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
+  padding: 0.6rem;
+  margin-bottom: 0.4rem;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -213,6 +233,18 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* Colleague List */
@@ -682,30 +714,65 @@ body {
   position: fixed;
   top: 20px;
   right: 20px;
-  padding: 1rem 1.5rem;
-  border-radius: 10px;
+  padding: 1.2rem 1.5rem;
+  border-radius: 16px;
   color: white;
-  font-weight: 500;
+  font-weight: 600;
   z-index: 1000;
-  transform: translateX(400px);
-  transition: transform 0.3s ease;
-  max-width: 300px;
+  transform: translateX(450px) scale(0.9);
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  max-width: 350px;
+  min-width: 280px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+}
+
+.notification:hover {
+  transform: translateX(-5px) scale(1.02);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
 }
 
 .notification.show {
-  transform: translateX(0);
+  transform: translateX(0) scale(1);
+  animation: notificationSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes notificationSlideIn {
+  0% {
+    transform: translateX(450px) scale(0.9);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(-10px) scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
 }
 
 .notification.success {
-  background: #48bb78;
+  background: linear-gradient(135deg, #48bb78, #38a169);
+  border-left: 4px solid #2f855a;
 }
 
 .notification.error {
-  background: #e53e3e;
+  background: linear-gradient(135deg, #e53e3e, #c53030);
+  border-left: 4px solid #9b2c2c;
 }
 
 .notification.info {
-  background: #4299e1;
+  background: linear-gradient(135deg, #4299e1, #3182ce);
+  border-left: 4px solid #2c5aa0;
 }
 
 /* Loading */
@@ -801,6 +868,26 @@ body {
   transition: box-shadow 0.2s;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
 }
+
+/* Search input for patient list - always visible */
+#searchPatientInput {
+  display: block !important;
+  margin-left: 0;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  outline: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+#searchPatientInput:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 .search-input.fade-in {
   animation: fadeInSearch 0.3s;
 }

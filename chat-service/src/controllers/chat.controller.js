@@ -138,6 +138,21 @@ exports.sendMessage = async (req, res) => {
       })
     console.log('chatMessage event emitted')
 
+    // Emit doctorMessage cho tất cả bác sĩ nếu tin nhắn từ bệnh nhân
+    try {
+      // Emit doctorMessage nếu username chứa "patient"
+      if (username && username.includes('patient')) {
+        console.log(`Emitting doctorMessage for patient ${username}`)
+        getIO().emit('doctorMessage', {
+          ...message,
+          roomId,
+        })
+        console.log('doctorMessage event emitted to all doctors')
+      }
+    } catch (error) {
+      console.error('Error emitting doctorMessage:', error?.message || error)
+    }
+
     // Gửi notification tới các thành viên khác (trừ người gửi)
     const notificationServiceUrl =
       'http://notification-service:3003/notification/send'

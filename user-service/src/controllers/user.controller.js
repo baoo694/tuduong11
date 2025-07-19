@@ -865,3 +865,32 @@ exports.getUserRoleDistribution = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' })
   }
 }
+
+// Lấy thông tin user theo ID
+exports.getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params
+
+    const user = await User.findById(userId).select('-password')
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    return res.status(200).json({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      doctorInfo: user.doctorInfo,
+      patientInfo: user.patientInfo,
+      isVerified: user.isVerified,
+    })
+  } catch (err) {
+    console.error('Error getting user by ID:', err)
+    return res.status(500).json({
+      message: 'Error getting user',
+      error: err.toString(),
+    })
+  }
+}

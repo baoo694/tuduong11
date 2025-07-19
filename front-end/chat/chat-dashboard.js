@@ -138,6 +138,15 @@ function setupEventListeners() {
   })
 
   updateProfileFormEl.addEventListener('submit', updateProfile)
+
+  // Search functionality
+  const searchPatientInput = document.getElementById('searchPatientInput')
+  if (searchPatientInput) {
+    searchPatientInput.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase().trim()
+      filterPatientList(searchTerm)
+    })
+  }
 }
 
 async function loadUserData() {
@@ -441,6 +450,15 @@ function initializeSocket() {
     }
   })
 
+  // Listen for doctorMessage events from patients
+  socket.on('doctorMessage', (message) => {
+    console.log('doctorMessage event received:', message)
+    console.log('Tin nhắn mới từ bệnh nhân (doctorMessage):', message)
+
+    // Update patient list order - push patient with new message to top
+    updatePatientListOrder(message.username)
+  })
+
   // Debug: test emit
   socket.emit('test', { message: 'test from frontend' })
 
@@ -693,8 +711,60 @@ function logout() {
 }
 
 function showNotification(message, type = 'info') {
-  notificationEl.textContent = message
+  // Tạo thông báo với icon và format đẹp
+  const notificationText = `
+    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+      <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+        <div style="
+          width: 24px; 
+          height: 24px; 
+          border-radius: 50%; 
+          background: rgba(255,255,255,0.2); 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          font-size: 14px;
+        ">
+          ${type === 'success' ? '✓' : type === 'error' ? '⚠' : '💬'}
+        </div>
+        <div style="font-weight: 700; font-size: 1rem;">${message}</div>
+      </div>
+      <button style="
+        width: 24px; 
+        height: 24px; 
+        border-radius: 50%; 
+        background: rgba(255,255,255,0.2); 
+        border: none;
+        color: white;
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.2s;
+        margin-left: 12px;
+      " 
+      onmouseover="this.style.background='rgba(255,255,255,0.3)'" 
+      onmouseout="this.style.background='rgba(255,255,255,0.2)'"
+      onclick="this.closest('.notification').classList.remove('show')">
+        ×
+      </button>
+    </div>
+  `
+
+  notificationEl.innerHTML = notificationText
   notificationEl.className = `notification ${type} show`
+  notificationEl.style.cursor = 'pointer'
+
+  // Thêm event listener để đóng thông báo khi click
+  const closeNotification = () => {
+    notificationEl.classList.remove('show')
+  }
+
+  // Xóa event listener cũ trước khi thêm mới
+  notificationEl.removeEventListener('click', closeNotification)
+  notificationEl.addEventListener('click', closeNotification)
 
   setTimeout(() => {
     notificationEl.classList.remove('show')
@@ -731,12 +801,58 @@ notificationSocket.on('new_notification', (notification) => {
 
 // Hàm hiện popup thông báo
 function showNotificationPopup(message) {
-  // Có thể tái sử dụng notificationEl hoặc tạo toast riêng
-  notificationEl.textContent = `Tin nhắn mới từ ${message.sender}: ${message.text}`
+  // Tạo thông báo đẹp hơn
+  const notificationText = `
+    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+      <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+        <div style="
+          width: 24px; 
+          height: 24px; 
+          border-radius: 50%; 
+          background: rgba(255,255,255,0.2); 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          font-size: 14px;
+        ">
+          💬
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-weight: 700; font-size: 1rem;">Tin nhắn mới từ ${message.sender}</div>
+          <div style="opacity: 0.9; font-size: 0.9rem; word-break: break-word;">${message.text}</div>
+        </div>
+      </div>
+      <button style="
+        width: 24px; 
+        height: 24px; 
+        border-radius: 50%; 
+        background: rgba(255,255,255,0.2); 
+        border: none;
+        color: white;
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.2s;
+        margin-left: 12px;
+      " 
+      onmouseover="this.style.background='rgba(255,255,255,0.3)'" 
+      onmouseout="this.style.background='rgba(255,255,255,0.2)'"
+      onclick="this.closest('.notification').classList.remove('show')">
+        ×
+      </button>
+    </div>
+  `
+
+  notificationEl.innerHTML = notificationText
   notificationEl.className = 'notification info show'
+
+  // Auto hide sau 5 giây
   setTimeout(() => {
     notificationEl.classList.remove('show')
-  }, 4000)
+  }, 5000)
 }
 
 // Cập nhật badge trên avatar bệnh nhân
@@ -745,22 +861,98 @@ function updatePatientListBadge() {
   patientItems.forEach((item) => {
     const patientId = item.dataset.patientId
     const patient = patientList.find((p) => p._id === patientId)
+
+    // Xóa tất cả badge cũ trước
+    const existingBadges = item.querySelectorAll('.unread-badge')
+    existingBadges.forEach((badge) => badge.remove())
+
     if (patient && unreadPatientMessages[patient.username]) {
-      // Thêm badge
-      let badge = item.querySelector('.unread-badge')
-      if (!badge) {
-        badge = document.createElement('span')
-        badge.className = 'unread-badge'
-        badge.textContent = '•'
-        badge.style.color = 'red'
-        badge.style.fontSize = '1.5rem'
-        badge.style.marginLeft = '8px'
-        item.querySelector('.patient-avatar').appendChild(badge)
-      }
-    } else {
-      // Xóa badge nếu có
-      const badge = item.querySelector('.unread-badge')
-      if (badge) badge.remove()
+      // Thêm badge mới
+      const badge = document.createElement('span')
+      badge.className = 'unread-badge'
+      badge.textContent = '●'
+      badge.style.cssText = `
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        background: #e53e3e;
+        color: white;
+        border-radius: 50%;
+        width: 12px;
+        height: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        animation: pulse 2s infinite;
+      `
+
+      // Thêm position relative cho avatar
+      const avatar = item.querySelector('.patient-avatar')
+      avatar.style.position = 'relative'
+      avatar.appendChild(badge)
     }
   })
+}
+
+// Update patient list order when new message received
+function updatePatientListOrder(senderUsername) {
+  console.log('updatePatientListOrder được gọi với:', senderUsername)
+
+  // Find patient in current list
+  const patientIndex = patientList.findIndex(
+    (p) => p.username === senderUsername
+  )
+
+  if (patientIndex !== -1) {
+    console.log('Tìm thấy bệnh nhân trong danh sách, index:', patientIndex)
+
+    // Remove patient from current position
+    const patient = patientList.splice(patientIndex, 1)[0]
+
+    // Mark as having unread message
+    unreadPatientMessages[patient.username] = true
+
+    // Add to beginning of list
+    patientList.unshift(patient)
+
+    console.log(
+      'Đã đẩy bệnh nhân lên đầu, danh sách mới:',
+      patientList.map((p) => p.username)
+    )
+
+    // Update UI
+    displayPatientList(patientList)
+    updatePatientListBadge()
+  } else {
+    console.log('Không tìm thấy bệnh nhân trong danh sách:', senderUsername)
+  }
+}
+
+// Filter patient list based on search term
+function filterPatientList(searchTerm) {
+  if (!searchTerm) {
+    // Show all patients if search is empty
+    displayPatientList(patientList)
+    return
+  }
+
+  // Filter patients by username or email
+  const filteredPatients = patientList.filter(
+    (patient) =>
+      patient.username.toLowerCase().includes(searchTerm) ||
+      patient.email.toLowerCase().includes(searchTerm)
+  )
+
+  // Display filtered results
+  if (filteredPatients.length === 0) {
+    patientListEl.innerHTML = `
+      <div class="no-patients">
+        <i class="fas fa-search" style="font-size: 2rem; color: #cbd5e0; margin-bottom: 1rem;"></i>
+        <p style="color: #718096; text-align: center;">Không tìm thấy bệnh nhân "${searchTerm}"</p>
+      </div>
+    `
+  } else {
+    displayPatientList(filteredPatients)
+  }
 }
