@@ -3,9 +3,6 @@ const router = express.Router()
 const userController = require('../controllers/user.controller')
 const authenticateToken = require('../middlewares/auth')
 
-// Tạo admin đầu tiên (chỉ chạy một lần)
-router.post('/create-initial-admin', userController.createInitialAdmin)
-
 // Verify email endpoint
 router.get('/verify', userController.verifyEmail)
 
@@ -17,12 +14,6 @@ router.post('/forgotPassword', userController.forgotPassword)
 
 // Reset password endpoint (token truyền dưới query param)
 router.post('/resetPassword', userController.resetPassword)
-
-// Delete account endpoint (yêu cầu người dùng đã xác thực)
-router.delete('/deleteAccount', authenticateToken, userController.deleteAccount)
-
-// List users endpoint (yêu cầu người dùng đã xác thực)
-router.get('/list', userController.listUsers)
 
 // Đổi mật khẩu
 router.post('/change-password', userController.changePassword)
@@ -62,14 +53,6 @@ router.get('/doctors', userController.getAllDoctors)
 
 // Lấy danh sách tất cả bệnh nhân
 router.get('/patients', userController.getAllPatients)
-
-// Test route để debug
-router.get('/test/:userId', (req, res) => {
-  res.json({ message: 'Test route working', userId: req.params.userId })
-})
-
-// Lấy thông tin user theo ID
-router.get('/user/:userId', userController.getUserById)
 
 // Xóa tài khoản (chỉ admin mới có quyền)
 router.delete(

@@ -15,54 +15,6 @@ const sendVerificationEmail = async (userEmail, token) => {
   return transporter.sendMail(mailOptions)
 }
 
-// Tạo tài khoản admin đầu tiên (chỉ chạy một lần)
-exports.createInitialAdmin = async (req, res) => {
-  try {
-    // Kiểm tra xem đã có admin nào chưa
-    const existingAdmin = await User.findOne({ role: 'admin' })
-    if (existingAdmin) {
-      return res.status(400).json({ message: 'Admin đã tồn tại' })
-    }
-
-    const { username, email, password } = req.body
-
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: 'Missing required fields' })
-    }
-
-    const salt = await bcrypt.genSalt(10)
-    const hashedPassword = await bcrypt.hash(password, salt)
-
-    const admin = await User.create({
-      username,
-      email: email.toLowerCase().trim(),
-      password: hashedPassword,
-      role: 'admin',
-      isVerified: true,
-    })
-
-    const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, {
-      expiresIn: '1d',
-    })
-
-    return res.status(201).json({
-      message: 'Admin account created successfully',
-      token,
-      user: {
-        _id: admin._id,
-        username: admin.username,
-        email: admin.email,
-        role: admin.role,
-      },
-    })
-  } catch (err) {
-    console.error('Error creating initial admin:', err)
-    return res
-      .status(500)
-      .json({ message: 'Error creating admin', error: err.toString() })
-  }
-}
-
 // Tạo tài khoản bác sĩ (chỉ admin mới có quyền)
 exports.createDoctor = async (req, res) => {
   try {
@@ -342,28 +294,6 @@ exports.resetPassword = async (req, res) => {
     return res
       .status(500)
       .json({ message: 'Error processing request', error: err.toString() })
-  }
-}
-
-exports.deleteAccount = async (req, res) => {
-  try {
-    const userId = req.user.id
-    await User.findByIdAndDelete(userId)
-    return res.status(200).json({ message: 'Your account has been deleted' })
-  } catch (err) {
-    console.error('Error in deleteAccount:', err)
-    return res
-      .status(500)
-      .json({ message: 'Error processing your request', error: err.toString() })
-  }
-}
-
-exports.listUsers = async (req, res) => {
-  try {
-    const users = await User.find().select('-password')
-    res.json({ users })
-  } catch (error) {
-    res.status(500).json({ error: 'Lỗi khi lấy danh sách người dùng' })
   }
 }
 
@@ -863,34 +793,5 @@ exports.getUserRoleDistribution = async (req, res) => {
     res.json(result)
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' })
-  }
-}
-
-// Lấy thông tin user theo ID
-exports.getUserById = async (req, res) => {
-  try {
-    const { userId } = req.params
-
-    const user = await User.findById(userId).select('-password')
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' })
-    }
-
-    return res.status(200).json({
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      doctorInfo: user.doctorInfo,
-      patientInfo: user.patientInfo,
-      isVerified: user.isVerified,
-    })
-  } catch (err) {
-    console.error('Error getting user by ID:', err)
-    return res.status(500).json({
-      message: 'Error getting user',
-      error: err.toString(),
-    })
   }
 }
