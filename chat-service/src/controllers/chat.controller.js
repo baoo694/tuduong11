@@ -272,74 +272,6 @@ exports.getRoomMembers = async (req, res) => {
   }
 }
 
-// Mời bạn bè vào phòng chat
-exports.inviteToRoom = async (req, res) => {
-  try {
-    const { roomId, inviter, invitee } = req.body
-    const room = await ChatRoom.findById(roomId)
-
-    if (!room) {
-      return res.status(404).json({ error: 'Room not found' })
-    }
-
-    // Kiểm tra người mời có phải là thành viên không
-    if (!room.members.includes(inviter)) {
-      return res
-        .status(403)
-        .json({ error: 'You must be a member to invite others' })
-    }
-
-    // Kiểm tra người được mời đã là thành viên chưa
-    if (room.members.includes(invitee)) {
-      return res
-        .status(400)
-        .json({ error: 'User is already a member of this room' })
-    }
-
-    // KHÔNG thêm invitee vào room.members ở đây
-    // Chỉ gửi socket event mời
-    getIO().to(invitee).emit('roomInvitation', {
-      roomId,
-      roomName: room.roomName,
-      inviter,
-    })
-
-    res.status(200).json({ message: 'Invitation sent successfully' })
-  } catch (err) {
-    console.error('Error inviting to room:', err)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}
-
-// API: Người được mời xác nhận tham gia phòng
-exports.acceptInviteToRoom = async (req, res) => {
-  try {
-    const { roomId, invitee } = req.body
-    const room = await ChatRoom.findById(roomId)
-    if (!room) {
-      return res.status(404).json({ error: 'Room not found' })
-    }
-    if (room.members.includes(invitee)) {
-      return res
-        .status(400)
-        .json({ error: 'User is already a member of this room' })
-    }
-    room.members.push(invitee)
-    room.messages.push({
-      type: 'system',
-      text: `${invitee} đã tham gia phòng`,
-      createdAt: new Date(),
-    })
-    await room.save()
-    getIO().to(roomId).emit('memberJoined', { roomId, username: invitee })
-    getIO().to(invitee).emit('newRoom', room)
-    res.status(200).json({ message: 'Joined room successfully' })
-  } catch (err) {
-    console.error('Error accepting invite:', err)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}
-
 // ===== CHỨC NĂNG CHO HỆ THỐNG BỆNH VIỆN =====
 
 // Tạo phòng chat bác sĩ-bệnh nhân
@@ -453,55 +385,6 @@ exports.getDoctorChatRooms = async (req, res) => {
     res.json({ rooms })
   } catch (err) {
     console.error('Error getting doctor chat rooms:', err)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}
-
-// Tạo phòng chat giữa các bác sĩ
-exports.createDoctorDoctorRoom = async (req, res) => {
-  try {
-    const { roomName, creatorId, creatorUsername, memberIds, memberUsernames } =
-      req.body
-
-    if (
-      !roomName ||
-      !creatorId ||
-      !creatorUsername ||
-      !memberIds ||
-      !memberUsernames
-    ) {
-      return res.status(400).json({ error: 'Missing required fields' })
-    }
-
-    // Đảm bảo creator cũng là member
-    const allMemberIds = [
-      creatorId,
-      ...memberIds.filter((id) => id !== creatorId),
-    ]
-    const allMemberUsernames = [
-      creatorUsername,
-      ...memberUsernames.filter((username) => username !== creatorUsername),
-    ]
-
-    const room = new ChatRoom({
-      roomName,
-      roomType: 'doctor_doctor',
-      members: allMemberUsernames,
-      memberIds: allMemberIds,
-      creator: creatorUsername,
-      creatorId: creatorId,
-    })
-
-    await room.save()
-
-    // Thông báo cho tất cả thành viên
-    allMemberUsernames.forEach((username) => {
-      getIO().to(username).emit('newDoctorDoctorRoom', room)
-    })
-
-    res.status(201).json(room)
-  } catch (err) {
-    console.error('Error creating doctor-doctor room:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 }
@@ -627,34 +510,6 @@ exports.getDoctorPatientRoom = async (req, res) => {
     res.json({ room })
   } catch (err) {
     console.error('Error getting doctor-patient room:', err)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-}
-
-// Lấy phòng chat giữa hai bác sĩ (đồng nghiệp)
-exports.getDoctorDoctorRoom = async (req, res) => {
-  try {
-    const { doctorId, colleagueId, doctorUsername, colleagueUsername } =
-      req.query
-    if (!doctorId || !colleagueId || !doctorUsername || !colleagueUsername) {
-      return res.status(400).json({ error: 'Missing required fields' })
-    }
-    // Tìm phòng chat loại doctor_doctor có đúng 2 thành viên này
-    const room = await ChatRoom.findOne({
-      roomType: 'doctor_doctor',
-      $or: [
-        { memberIds: { $all: [doctorId, colleagueId], $size: 2 } },
-        { members: { $all: [doctorUsername, colleagueUsername], $size: 2 } },
-      ],
-    })
-    if (!room) {
-      return res
-        .status(404)
-        .json({ error: 'No chat room found for these doctors' })
-    }
-    res.json({ room })
-  } catch (err) {
-    console.error('Error getting doctor-doctor room:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 }

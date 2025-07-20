@@ -21,17 +21,11 @@ router.get('/patient/room', chatController.getPatientChatRoom)
 // Lấy danh sách phòng chat của bác sĩ
 router.get('/doctor/rooms', chatController.getDoctorChatRooms)
 
-// Tạo phòng chat giữa các bác sĩ
-router.post('/doctor-doctor/create', chatController.createDoctorDoctorRoom)
-
 // Hoàn thành phiên tư vấn
 router.post('/consultation/complete', chatController.completeConsultation)
 
 // Lấy thống kê phòng chat cho bác sĩ
 router.get('/doctor/stats', chatController.getDoctorChatStats)
-
-// Lấy phòng chat giữa hai bác sĩ (đồng nghiệp)
-router.get('/doctor-doctor/room', chatController.getDoctorDoctorRoom)
 
 // ===== ROUTES CHUNG =====
 
@@ -55,12 +49,6 @@ router.post('/messages', chatController.sendMessage)
 
 // Xóa phòng chat
 router.post('/deleteRoom', chatController.deleteRoom)
-
-// Mời bạn bè vào phòng chat
-router.post('/invite', chatController.inviteToRoom)
-
-// Xác nhận tham gia phòng khi được mời
-router.post('/accept-invite', chatController.acceptInviteToRoom)
 
 // Lấy danh sách thành viên trong phòng chat
 router.get('/room/:roomId/members', chatController.getRoomMembers)
