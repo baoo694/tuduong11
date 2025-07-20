@@ -14,7 +14,6 @@ app.use(express.json())
 
 // Routes
 app.use('/chat', require('./routes/chat.routes'))
-app.use('/chat/friend', require('./routes/friend.routes'))
 
 // MongoDB connection
 mongoose
